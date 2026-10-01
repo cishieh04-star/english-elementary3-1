@@ -195,6 +195,7 @@ button{font-family:inherit}
 .fin .l1{font-size:min(9cqw,10cqh);font-weight:900;color:var(--red);background:#fff;border-radius:18px;padding:0 20px}
 .fin .l2{font-size:min(6cqw,7cqh);font-weight:900;background:#fff;border-radius:14px;padding:0 14px}
 .pauseMsg{font-size:clamp(40px,12vmin,90px)}
+.vsel{font-size:clamp(14px,3.4vmin,19px);font-weight:700;padding:6px;border-radius:10px;border:3px solid #ccd;max-width:min(60vw,320px)}
 </style>
 </head>
 <body>
@@ -269,22 +270,51 @@ function killAll(){for(const w of pend)w.rej(ABORT);pend.clear();}
 /* ================= 聲音 ================= */
 let voices=[];
 function loadVoices(){try{voices=speechSynthesis.getVoices();}catch(e){}}
-if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
-function voiceFor(lang){
-  const L=lang.toLowerCase();
-  const list=voices.filter(v=>v.lang.replace('_','-').toLowerCase()===L);
-  const pref=list.find(v=>/Samantha|Google US|Mei-Jia|Meijia|Google 國語|Hanhan/i.test(v.name));
-  return pref||list[0]||voices.find(v=>v.lang.toLowerCase().startsWith(L.slice(0,2)));
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=()=>{loadVoices();for(const k in vCache)delete vCache[k];};setTimeout(loadVoices,500);setTimeout(loadVoices,1500);}
+/* 語音挑選：避開 iPhone 上的「怪聲音」（Bubbles、Bells、Zarvox…），優先用自然的人聲；老師也可以在設定裡自己選 */
+const NOVELTY=/Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Fred|Good News|Hysterical|Jester|Junior|Kathy|Organ|Princess|Ralph|Superstar|Trinoids|Whisper|Wobble|Zarvox|Grandma|Grandpa|Eddy|Flo|Reed|Rocko|Sandy|Shelley|Novelty/i;
+const PREF={en:['Samantha','Ava','Allison','Susan','Nicky','Zoe','Joelle','Evan','Nathan','Tom','Alex','Karen','Moira','Tessa','Daniel','Serena','Google US English','Microsoft Aria','Microsoft Jenny','Microsoft Ana','Microsoft Zira','Microsoft Guy'],
+  zh:['Mei-Jia','Meijia','美佳','Google 國語','Microsoft HsiaoChen','Microsoft HsiaoYu','Microsoft Yating','Microsoft Hanhan','Microsoft Zhiwei','Ting-Ting','Tingting','婷婷']};
+const vlang=v=>(v.lang||'').replace('_','-').toLowerCase();
+function voiceOK(v,fam){const l=vlang(v);if(NOVELTY.test(v.name))return false;
+  if(fam==='en')return l.startsWith('en');
+  return (l==='zh-tw'||l==='zh-cn'||l==='cmn-hant-tw'||l==='cmn-hans-cn')&&!/yue|hk|Sin-ji|Sinji/i.test(l+v.name);}
+function voiceScore(v,fam){
+  const l=vlang(v);let sc=0;
+  if(fam==='en')sc+=l==='en-us'?30:(l==='en-gb'||l==='en-au'||l==='en-ca'||l==='en-ie')?20:10;
+  else sc+=(l==='zh-tw'||l==='cmn-hant-tw')?30:15;
+  const i=PREF[fam].findIndex(n=>v.name.toLowerCase().includes(n.toLowerCase()));
+  if(i>=0)sc+=40-i;
+  if(/enhanced|premium|neural|natural|高品質|加強/i.test(v.name))sc+=8;
+  if(v.localService)sc+=2;
+  return sc;
 }
-let talking=0,manualBusy=false;
+const vCache={};
+function voiceFor(lang){
+  const fam=lang.startsWith('en')?'en':'zh';
+  const want=fam==='en'?S.enVoice:S.zhVoice;
+  if(want){const v=voices.find(x=>x.name===want);if(v)return v;}
+  /* 跟「詩篇」遊戲一樣：預設不指定說話者，只告訴手機語言，由手機用它自己的標準聲音 */
+  return null;
+  if(vCache[fam]&&voices.includes(vCache[fam]))return vCache[fam];
+  const list=voices.filter(v=>voiceOK(v,fam)).sort((a,b)=>voiceScore(b,fam)-voiceScore(a,fam));
+  /* 找不到好的聲音時，不指定說話者，交給系統預設的聲音（比亂選安全） */
+  const best=list[0]&&voiceScore(list[0],fam)>=(fam==='en'?50:45)?list[0]:null;
+  vCache[fam]=best;return best;
+}
+function voiceOptions(fam){return voices.filter(v=>voiceOK(v,fam)).sort((a,b)=>voiceScore(b,fam)-voiceScore(a,fam));}
+let talking=0,manualBusy=false,lastCancel=0;
+function sCancel(){lastCancel=performance.now();try{speechSynthesis.cancel();}catch(e){}}
 function speak(text,lang,m){
   const g=GEN;
   return new Promise(async(res,rej)=>{
     while(paused||(manualBusy&&!m)){await new Promise(r=>setTimeout(r,100));}
     if(GEN!==g){rej(ABORT);return;}
     if(!S.sound||!('speechSynthesis' in window)){setTimeout(()=>GEN!==g?rej(ABORT):res(),T(500));return;}
+    {const since=performance.now()-lastCancel;if(since<120)await new Promise(r=>setTimeout(r,120-since));}
+    if(GEN!==g){rej(ABORT);return;}
     const u=new SpeechSynthesisUtterance(text);u.lang=lang;const v=voiceFor(lang);if(v)u.voice=v;
-    let er={vslow:.52,slow:.68,normal:.82,fast:.95}[S.rate]||.68;if(!/^[A-Za-z]\.$/.test(text))er+=.12;u.rate=lang.startsWith('en')?er:1/Math.sqrt(MUL());
+    let er={vslow:.6,slow:.7,normal:.82,fast:.95}[S.rate]||.7;if(!/^[A-Za-z]\.$/.test(text))er+=.1;u.rate=lang.startsWith('en')?er:.9;
     talking++;let fin=false;const done=()=>{if(fin)return;fin=true;talking--;clearTimeout(tm);if(GEN!==g)rej(ABORT);else setTimeout(res,120);};
     u.onend=done;u.onerror=done;
     const tm=setTimeout(done,2500+text.length*(lang.startsWith('en')?110/er:330));
@@ -418,7 +448,7 @@ async function choose(items,correct,opt={}){
   while(true){
     const i=await waitEvent(done=>{r.els.forEach((e,k)=>{e.onclick=()=>{if(r.busy||e.classList.contains('bad'))return;done(k);};});});
     r.busy=true;const ok=i===correct;
-    if(opt.coach&&ok){try{speechSynthesis.cancel();}catch(e){}}
+    if(opt.coach&&ok){sCancel();}
     r.els.forEach(e=>e.classList.remove('hint'));
     if(ok)stopCoach=true;
     if(style==='claw')await clawGrab(r,i,ok);
@@ -455,7 +485,7 @@ async function stLearn(){
     (async()=>{try{await runSteps([{zh:`用手指，摸一摸${kind}`},{en:nm(ch)}],()=>touched||busy);while(!touched){await sleep(GAP());if(touched)break;if(busy||performance.now()-lastAct<GAP())continue;if(++it>=2)target.classList.add('pulse');await runSteps([{zh:`摸一摸${kind}`},{en:nm(ch)},{p:T(700)},{en:nm(ch)}],()=>touched||busy);}}catch(e){}})();
     while(true){
       const k=await waitEvent(done=>{cU.onclick=()=>{if(!busy)done('U');};cl.onclick=()=>{if(!busy)done('l');};});
-      if((k==='U')===wantU){try{speechSynthesis.cancel();}catch(e){}break;}
+      if((k==='U')===wantU){sCancel();break;}
       /* 答錯：只有第一次會說明；之後故意亂點只有「嗶」一聲，不會重新唸題目或單字 */
       busy=true;wrongN++;lastAct=performance.now();sfx('bad');other.classList.add('bad');setTimeout(()=>other.classList.remove('bad'),450);toast(`這是${otherKind}`,1000);
       if(wrongN===1){await zh(`這是${otherKind}`);await zh(`要摸${kind}`);await say(nm(ch));}else await sleep(T(900));
@@ -732,7 +762,7 @@ async function finale(msg){
 /* ================= 首頁 / 設定 / 卡片 ================= */
 function showPlayUI(){showRate=true;$('btnHome').style.visibility='visible';$('btnPause').style.visibility='visible';$('btnPause').textContent='暫停';paused=false;}
 function goHome(){
-  showRate=false;rateDemo=null;GEN++;killAll();paused=false;try{speechSynthesis.cancel();}catch(e){}
+  showRate=false;rateDemo=null;GEN++;killAll();paused=false;sCancel();
   mode='home';drawBoard();setPrompt('');$('title').textContent='第三課 海底樂團大冒險';
   $('btnHome').style.visibility='hidden';$('btnPause').style.visibility='hidden';
   const play=clearPlay();
@@ -764,16 +794,24 @@ function showSettings(){
     ['zh','中文意思',[[true,'顯示'],[false,'不顯示']]],
     ['sound','聲音',[[true,'開'],[false,'關']]]];
   const m=modal(`<h2>老師設定</h2>${rows.map(([k,lab,opts])=>`<div class="srow"><span>${lab}</span>${opts.map(([v,t])=>`<button class="opt ${S[k]===v?'on':''}" data-k="${k}" data-v='${JSON.stringify(v)}'>${t}</button>`).join('')}</div>`).join('')}
+  <div class="srow"><span>英文聲音</span><select class="vsel" id="vEn"></select><button class="opt" id="tEn">試聽</button></div>
+  <div class="srow"><span>中文聲音</span><select class="vsel" id="vZh"></select><button class="opt" id="tZh">試聽</button></div>
   <div class="srow"><span>星星</span><button class="opt" id="sReset">星星歸零（按兩下）</button></div>
   <div style="font-size:14px;color:#666;margin:4px">拼字、排句子固定使用夾娃娃機。等待作答時，英文會一直重複唸；重複兩次後，正確答案會發光提示。</div>
   <button class="bigbtn" id="sClose">關閉</button>`);
   m.querySelectorAll('.opt[data-k]').forEach(b=>b.onclick=()=>{S[b.dataset.k]=JSON.parse(b.dataset.v);save();m.querySelectorAll(`[data-k="${b.dataset.k}"]`).forEach(x=>x.classList.toggle('on',x===b));});
   let rc=0;m.querySelector('#sReset').onclick=e=>{rc++;if(rc>=2){S.stars=0;save();updStars();e.target.textContent='已歸零';}else e.target.textContent='再按一次確定';};
+  const fillV=(id,fam,key)=>{const sel=m.querySelector(id);const ops=voiceOptions(fam);
+    sel.innerHTML=`<option value="">手機預設（建議）</option>`+ops.map(v=>`<option value="${v.name.replace(/"/g,'&quot;')}" ${S[key]===v.name?'selected':''}>${v.name}（${v.lang}）</option>`).join('');
+    sel.onchange=()=>{S[key]=sel.value;save();delete vCache[fam];};};
+  fillV('#vEn','en','enVoice');fillV('#vZh','zh','zhVoice');
+  m.querySelector('#tEn').onclick=()=>{sCancel();unlockAudio();say('Good morning. A, B, C. apple.').catch(()=>{});};
+  m.querySelector('#tZh').onclick=()=>{sCancel();unlockAudio();zh('早安，小朋友，我們一起學英文。').catch(()=>{});};
   m.querySelector('#sClose').onclick=()=>{m.remove();goHome();};
 }
 $('btnHome').onclick=goHome;
 $('btnPause').onclick=()=>{
-  if(paused)return;paused=true;try{speechSynthesis.cancel();}catch(e){}
+  if(paused)return;paused=true;sCancel();
   const m=modal(`<div class="pauseMsg">☕</div><h2>休息一下</h2><button class="bigbtn" id="pGo">繼續</button>`);
   m.querySelector('#pGo').onclick=()=>{m.remove();paused=false;if(repeatFn)Promise.resolve(repeatFn()).catch(()=>{});};
 };
