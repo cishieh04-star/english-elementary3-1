@@ -555,8 +555,7 @@ async function stCase(n=5){
     setPrompt(`<b class="eng pl">${show}</b> 的${kind}是哪一個？`,m=>say(nm(show),m));
     await choose(opts.map(x=>({html:`<span class="eng">${x}</span>`,say:nm(x)})),opts.indexOf(ans),{
       onWrong:async i=>{toast('這是 '+opts[i],800);await say(nm(opts[i]));await zh('不是這個喔');},
-      coach:it=>it===0?[{zh:`找一找，${from}`},{en:nm(show)},{zh:`的${kind}在哪裡？`},{p:T(700)},{en:nm(show)},{p:T(900)},{en:nm(show)}]
-        :[{en:nm(show)},{p:T(900)},{en:nm(show)},{p:T(500)},{zh:`找${kind}的`},{en:nm(ans)}]});
+      coach:it=>[{zh:'英文字母'},{en:nm(show)},{zh:`的${kind}是哪一個？`},...(it>=2?[{p:T(900)},{en:nm(ans)}]:[])]});
     await sleep(T(300));
   }
 }
