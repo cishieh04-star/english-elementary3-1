@@ -7,7 +7,7 @@
 <style>
 :root{--navy:#1d3a6e;--red:#e53935;--yellow:#ffd23f;--blue:#2f80ed;--ink:#1d2433;--pink:#ff5f8f}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-html,body{height:100%;overflow:hidden;background:#bfe6ff;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
+html,body{position:fixed;inset:0;width:100%;overscroll-behavior:none;height:100%;overflow:hidden;background:#bfe6ff;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
 button{font-family:inherit}
 .eng{font-family:"Comic Sans MS","Chalkboard SE","Arial Rounded MT Bold","Trebuchet MS",sans-serif}
 #app{height:100vh;height:100dvh;display:flex;flex-direction:column;background:linear-gradient(#bfe6ff 0%,#e8f6ff 50%,#9ad89a 50%,#6cc26c 100%)}
@@ -216,10 +216,10 @@ button{font-family:inherit}
 
 <script>
 /* ================= 資料（第三課：Gg Hh Ii、Listen!） ================= */
-const LETTERS=[{U:'G',l:'g',words:['goat','gift']},{U:'H',l:'h',words:['hat','hen']},{U:'I',l:'i',words:['ink','insect']}];
-const W={goat:{e:'🐐',zh:'山羊'},gift:{e:'🎁',zh:'禮物'},hat:{e:'👒',zh:'帽子'},hen:{e:'🐔',zh:'母雞'},ink:{e:'<svg viewBox="0 0 64 64" width="1em" height="1em" style="vertical-align:-.12em"><rect x="20" y="3" width="24" height="13" rx="3" fill="#e53935"/><rect x="10" y="15" width="44" height="46" rx="11" fill="#222"/><path d="M32 27c-6 9-8 12-8 16a8 8 0 0 0 16 0c0-4-2-7-8-16z" fill="#fff"/></svg>',zh:'墨水'},insect:{e:'🐞',zh:'昆蟲'}};
+const LETTERS=[{U:'G',l:'g',words:['goat','gift']},{U:'H',l:'h',words:['hat','hen']},{U:'I',l:'i',words:['ink','ice']}];
+const W={goat:{e:'🐐',zh:'山羊'},gift:{e:'🎁',zh:'禮物'},hat:{e:'👒',zh:'帽子'},hen:{e:'🐔',zh:'母雞'},ink:{e:'<svg viewBox="0 0 64 64" width="1em" height="1em" style="vertical-align:-.12em"><rect x="20" y="3" width="24" height="13" rx="3" fill="#e53935"/><rect x="10" y="15" width="44" height="46" rx="11" fill="#222"/><path d="M32 27c-6 9-8 12-8 16a8 8 0 0 0 16 0c0-4-2-7-8-16z" fill="#fff"/></svg>',zh:'墨水'},ice:{e:'🧊',zh:'冰塊'}};
 const WORDS=Object.keys(W);
-const AN=w=>w==='ink'?'':/^[aeiou]/.test(w)?'an':'a';
+const AN=w=>(w==='ink'||w==='ice')?'':/^[aeiou]/.test(w)?'an':'a';
 const CONF={a:['o','e','d'],b:['d','p','h'],c:['o','e','u'],d:['b','q','p'],e:['c','a','o'],f:['t','l','j'],g:['q','y','p'],h:['n','b','k'],i:['l','j','t'],j:['i','g','y'],k:['h','x','t'],l:['i','t','j'],m:['n','w','u'],n:['m','h','u'],o:['a','c','e'],p:['q','b','d'],q:['p','g','d'],r:['n','v','t'],s:['z','c','e'],t:['f','l','i'],u:['n','v','w'],v:['w','u','y'],w:['m','v','u'],x:['k','y','z'],y:['v','g','j'],z:['s','x','n'],
   A:['H','R','V'],B:['R','P','D'],C:['G','O','Q'],D:['O','B','P'],E:['F','B','L'],F:['E','P','T'],G:['C','Q','O'],H:['N','A','K'],I:['L','J','T'],J:['I','L','U'],K:['X','R','H'],L:['I','J','T'],M:['N','W','H'],N:['M','H','Z'],O:['Q','D','C'],P:['R','B','F'],Q:['O','G','D'],R:['P','B','K'],S:['Z','C','G'],T:['I','L','F'],U:['V','J','O'],V:['U','W','Y'],W:['M','V','N'],X:['K','Y','Z'],Y:['V','X','T'],Z:['S','N','X']};
 /* 本課句子 + 前兩課複習句 */
@@ -235,8 +235,8 @@ const SITS=[
 ];
 const SCENES=[
  {name:'🌊 海底樂團',bg:'linear-gradient(#bfeaff 0 60%,#f3dfae 60%)',targets:['hat','ink','gift'],others:['🐙','🐠','🐢','🦀']},
- {name:'🚜 農場',bg:'linear-gradient(#cfefff 0 45%,#a9d98a 45%)',targets:['goat','hen','insect'],others:['🐄','🐷','🌻','🚜']},
- {name:'🎂 生日派對',bg:'linear-gradient(#ffe6f2 0 60%,#f5d0a9 60%)',targets:['gift','hat'],others:['🎂','🎈','🧁','🎉']},
+ {name:'🚜 農場',bg:'linear-gradient(#cfefff 0 45%,#a9d98a 45%)',targets:['goat','hen'],others:['🐄','🐷','🌻','🚜','🐞']},
+ {name:'🎂 生日派對',bg:'linear-gradient(#ffe6f2 0 60%,#f5d0a9 60%)',targets:['gift','hat','ice'],others:['🎂','🎈','🧁','🎉']},
  {name:'🏫 上學教室',bg:'linear-gradient(#fdf1e3 0 60%,#d9b98f 60%)',targets:['ink','hat','gift'],others:['📚','✏️','🪑','📏']}
 ];
 const CARDS=[['🐐','山羊指揮'],['🐔','母雞潛水員'],['🐶','柯基潛水員'],['🐷','小豬潛水員'],['🐙','章魚鼓手'],['🐢','海龜作曲家'],['🦀','螃蟹樂手'],['🐠','熱帶魚歌手']];
@@ -447,7 +447,7 @@ async function choose(items,correct,opt={}){
   if(opt.coach){(async()=>{let it=0;try{while(!stopCoach){if(!r.busy&&!(r.lastAct&&performance.now()-r.lastAct<GAP()*.9)){if(it>=2&&r.els[correct])r.els[correct].classList.add('hint');await runSteps(opt.coach(it++,r),()=>stopCoach||r.busy);}if(stopCoach)break;await sleep(GAP());}}catch(e){}})();}
   while(true){
     const i=await waitEvent(done=>{r.els.forEach((e,k)=>{e.onclick=()=>{if(r.busy||e.classList.contains('bad'))return;done(k);};});});
-    r.busy=true;const ok=i===correct;
+    r.busy=true;const ok=opt.accept?opt.accept(i):i===correct;opt.picked=i;
     if(opt.coach&&ok){sCancel();}
     r.els.forEach(e=>e.classList.remove('hint'));
     if(ok)stopCoach=true;
@@ -522,10 +522,10 @@ function traceLetter(ch){
   const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),cw=(Math.max(...xs)-x0)/7+1,chh=(Math.max(...ys)-y0)/7+1;
   const cTot={},cCov={};pts.forEach(p=>{p[3]=Math.floor((p[0]-x0)/cw)+'_'+Math.floor((p[1]-y0)/chh);cTot[p[3]]=(cTot[p[3]]||0)+1;cCov[p[3]]=0;});
   const allCells=()=>Object.keys(cTot).every(k=>cCov[k]/cTot[k]>=(cTot[k]<4?.5:.75));
-  const col=COLORS[(ch.toLowerCase().charCodeAt(0))%COLORS.length];
+  const col=['#e53935','#2f80ed','#8e24aa','#f57c00','#d81b60','#00897b'][(ch.toLowerCase().charCodeAt(0)+(ch===ch.toUpperCase()?0:3))%6];
   let covered=0,down=false,last=null,finished=false;
   function guide(){ctx.clearRect(0,0,w,h);ctx.font=FONT;ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    ctx.fillStyle='#ffffffcc';ctx.fillText(ch,w/2,y);ctx.setLineDash([10,8]);ctx.lineWidth=4;ctx.strokeStyle='#1d3a6e';ctx.strokeText(ch,w/2,y);ctx.setLineDash([]);
+    ctx.fillStyle='#ffffff';ctx.fillText(ch,w/2,y);ctx.setLineDash([10,8]);ctx.lineWidth=4;ctx.strokeStyle='#1d3a6e';ctx.strokeText(ch,w/2,y);ctx.setLineDash([]);
     ctx.fillStyle='#1d3a6e';const dr=Math.max(3,step*.35);for(const p of pts){if(Math.round(p[0]/step)%2===0&&Math.round(p[1]/step)%2===0){ctx.beginPath();ctx.arc(p[0],p[1],dr,0,7);ctx.fill();}}}
   guide();
   const mark=(x,yv)=>{for(const p of pts){if(!p[2]){const dx=p[0]-x,dy=p[1]-yv;if(dx*dx+dy*dy<R*R){p[2]=true;covered++;cCov[p[3]]++;}}}};
@@ -536,7 +536,8 @@ function traceLetter(ch){
     const d=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(d/(R/2)));for(let i=0;i<=n;i++)mark(a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n);
     const pr=covered/pts.length;const ok=pr>=.88&&allCells();bar.firstChild.style.width=(ok?100:Math.min(95,pr/.88*95))+'%';
     if(ok&&!finished){finished=true;down=false;ctx.fillStyle=col;ctx.font=FONT;ctx.fillText(ch,w/2,y);resolveDone();}}
-  cv.onpointerdown=e=>{if(finished||paused)return;down=true;last=pos(e);draw(last,last);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);};
+  cv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+  cv.onpointerdown=e=>{e.preventDefault();if(finished||paused)return;down=true;last=pos(e);draw(last,last);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);};
   cv.onpointermove=e=>{if(!down||finished)return;const p=pos(e);draw(last,p);last=p;};
   cv.onpointerup=cv.onpointercancel=()=>{down=false;};
   redo.onclick=()=>{if(finished)return;pts.forEach(p=>p[2]=false);for(const k in cCov)cCov[k]=0;covered=0;bar.firstChild.style.width='0';guide();};
@@ -647,20 +648,21 @@ async function assemble(tokens,extras,head,full,introZh){
   for(let i=0;i<tokens.length;i++){
     show(i);const ci=pool.findIndex(p=>p.real&&p.t===tokens[i]);
     const next=[{p:T(500)},{zh:i===0?'第一個，要夾':'下一個，要夾'},{fn:()=>flash(i)},{en:nmT(tokens[i])},{p:T(800)},{en:nmT(tokens[i])},{fn:()=>flash(-1)}];
-    await choose(pool.map(x=>({html:x.t,say:x.t,long})),ci,{style:'claw',quiet:true,
+    const copt={accept:k=>pool[k].t===tokens[i],style:'claw',quiet:true,
       onWrong:async k=>{await say(nmT(pool[k].t));await zh('不是這個喔');},
       coach:it=>{
         if(it===0&&i===0)return[...(introZh?[{zh:introZh}]:[]),{zh:'先聽聽看'},...spellSteps(),{p:T(900)},...spellSteps(),...next];
         if(it===0)return next;
         return[...spellSteps(),...next];
-      }});
-    filled.push(tokens[i]);pool.splice(ci,1);show(i+1);
+      }};
+    await choose(pool.map(x=>({html:x.t,say:x.t,long})),ci,copt);
+    filled.push(tokens[i]);pool.splice(copt.picked,1);show(i+1);
     await say(nmT(tokens[i]));
   }
   show(-1);await cheer();await runSteps(spellSteps(),()=>false);
 }
 async function stSpell(n=3){
-  const ws=shuffle(['goat','hat','hen','gift','ink']).slice(0,n);
+  const ws=shuffle(['goat','hat','hen','gift','ink','ice']).slice(0,n);
   for(const w of ws){
     const letters=w.split('');const extra=shuffle([...new Set(letters.flatMap(c=>CONF[c]||[]))].filter(c=>!letters.includes(c))).slice(0,w.length<=3?2:1);
     await assemble(letters,extra,`${W[w].e} 夾出 `,w,'用夾娃娃機，依照順序夾出字母');
@@ -814,6 +816,9 @@ $('btnPause').onclick=()=>{
   const m=modal(`<div class="pauseMsg">☕</div><h2>休息一下</h2><button class="bigbtn" id="pGo">繼續</button>`);
   m.querySelector('#pGo').onclick=()=>{m.remove();paused=false;if(repeatFn)Promise.resolve(repeatFn()).catch(()=>{});};
 };
+/* 手機上手指滑動時，整個畫面不跟著移動（只有設定視窗可以捲動） */
+document.addEventListener('touchmove',e=>{if(!(e.target.closest&&e.target.closest('.mbox')))e.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
 goHome();
 </script>
 </body>

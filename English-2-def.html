@@ -7,7 +7,7 @@
 <style>
 :root{--navy:#1d3a6e;--red:#e53935;--yellow:#ffd23f;--blue:#2f80ed;--ink:#1d2433;--pink:#ff5f8f}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-html,body{height:100%;overflow:hidden;background:#bfe6ff;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
+html,body{position:fixed;inset:0;width:100%;overscroll-behavior:none;height:100%;overflow:hidden;background:#bfe6ff;font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;color:var(--ink)}
 button{font-family:inherit}
 .eng{font-family:"Comic Sans MS","Chalkboard SE","Arial Rounded MT Bold","Trebuchet MS",sans-serif}
 #app{height:100vh;height:100dvh;display:flex;flex-direction:column;background:linear-gradient(#bfe6ff 0%,#e8f6ff 50%,#9ad89a 50%,#6cc26c 100%)}
@@ -446,7 +446,7 @@ async function choose(items,correct,opt={}){
   if(opt.coach){(async()=>{let it=0;try{while(!stopCoach){if(!r.busy&&!(r.lastAct&&performance.now()-r.lastAct<GAP()*.9)){if(it>=2&&r.els[correct])r.els[correct].classList.add('hint');await runSteps(opt.coach(it++,r),()=>stopCoach||r.busy);}if(stopCoach)break;await sleep(GAP());}}catch(e){}})();}
   while(true){
     const i=await waitEvent(done=>{r.els.forEach((e,k)=>{e.onclick=()=>{if(r.busy||e.classList.contains('bad'))return;done(k);};});});
-    r.busy=true;const ok=i===correct;
+    r.busy=true;const ok=opt.accept?opt.accept(i):i===correct;opt.picked=i;
     if(opt.coach&&ok){sCancel();}
     r.els.forEach(e=>e.classList.remove('hint'));
     if(ok)stopCoach=true;
@@ -521,10 +521,10 @@ function traceLetter(ch){
   const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),x0=Math.min(...xs),y0=Math.min(...ys),cw=(Math.max(...xs)-x0)/7+1,chh=(Math.max(...ys)-y0)/7+1;
   const cTot={},cCov={};pts.forEach(p=>{p[3]=Math.floor((p[0]-x0)/cw)+'_'+Math.floor((p[1]-y0)/chh);cTot[p[3]]=(cTot[p[3]]||0)+1;cCov[p[3]]=0;});
   const allCells=()=>Object.keys(cTot).every(k=>cCov[k]/cTot[k]>=(cTot[k]<4?.5:.75));
-  const col=COLORS[(ch.toLowerCase().charCodeAt(0))%COLORS.length];
+  const col=['#e53935','#2f80ed','#8e24aa','#f57c00','#d81b60','#00897b'][(ch.toLowerCase().charCodeAt(0)+(ch===ch.toUpperCase()?0:3))%6];
   let covered=0,down=false,last=null,finished=false;
   function guide(){ctx.clearRect(0,0,w,h);ctx.font=FONT;ctx.textAlign='center';ctx.textBaseline='alphabetic';
-    ctx.fillStyle='#ffffffcc';ctx.fillText(ch,w/2,y);ctx.setLineDash([10,8]);ctx.lineWidth=4;ctx.strokeStyle='#1d3a6e';ctx.strokeText(ch,w/2,y);ctx.setLineDash([]);
+    ctx.fillStyle='#ffffff';ctx.fillText(ch,w/2,y);ctx.setLineDash([10,8]);ctx.lineWidth=4;ctx.strokeStyle='#1d3a6e';ctx.strokeText(ch,w/2,y);ctx.setLineDash([]);
     ctx.fillStyle='#1d3a6e';const dr=Math.max(3,step*.35);for(const p of pts){if(Math.round(p[0]/step)%2===0&&Math.round(p[1]/step)%2===0){ctx.beginPath();ctx.arc(p[0],p[1],dr,0,7);ctx.fill();}}}
   guide();
   const mark=(x,yv)=>{for(const p of pts){if(!p[2]){const dx=p[0]-x,dy=p[1]-yv;if(dx*dx+dy*dy<R*R){p[2]=true;covered++;cCov[p[3]]++;}}}};
@@ -535,7 +535,8 @@ function traceLetter(ch){
     const d=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(d/(R/2)));for(let i=0;i<=n;i++)mark(a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n);
     const pr=covered/pts.length;const ok=pr>=.88&&allCells();bar.firstChild.style.width=(ok?100:Math.min(95,pr/.88*95))+'%';
     if(ok&&!finished){finished=true;down=false;ctx.fillStyle=col;ctx.font=FONT;ctx.fillText(ch,w/2,y);resolveDone();}}
-  cv.onpointerdown=e=>{if(finished||paused)return;down=true;last=pos(e);draw(last,last);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);};
+  cv.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});cv.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+  cv.onpointerdown=e=>{e.preventDefault();if(finished||paused)return;down=true;last=pos(e);draw(last,last);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);};
   cv.onpointermove=e=>{if(!down||finished)return;const p=pos(e);draw(last,p);last=p;};
   cv.onpointerup=cv.onpointercancel=()=>{down=false;};
   redo.onclick=()=>{if(finished)return;pts.forEach(p=>p[2]=false);for(const k in cCov)cCov[k]=0;covered=0;bar.firstChild.style.width='0';guide();};
@@ -646,14 +647,15 @@ async function assemble(tokens,extras,head,full,introZh){
   for(let i=0;i<tokens.length;i++){
     show(i);const ci=pool.findIndex(p=>p.real&&p.t===tokens[i]);
     const next=[{p:T(500)},{zh:i===0?'第一個，要夾':'下一個，要夾'},{fn:()=>flash(i)},{en:nmT(tokens[i])},{p:T(800)},{en:nmT(tokens[i])},{fn:()=>flash(-1)}];
-    await choose(pool.map(x=>({html:x.t,say:x.t,long})),ci,{style:'claw',quiet:true,
+    const copt={accept:k=>pool[k].t===tokens[i],style:'claw',quiet:true,
       onWrong:async k=>{await say(nmT(pool[k].t));await zh('不是這個喔');},
       coach:it=>{
         if(it===0&&i===0)return[...(introZh?[{zh:introZh}]:[]),{zh:'先聽聽看'},...spellSteps(),{p:T(900)},...spellSteps(),...next];
         if(it===0)return next;
         return[...spellSteps(),...next];
-      }});
-    filled.push(tokens[i]);pool.splice(ci,1);show(i+1);
+      }};
+    await choose(pool.map(x=>({html:x.t,say:x.t,long})),ci,copt);
+    filled.push(tokens[i]);pool.splice(copt.picked,1);show(i+1);
     await say(nmT(tokens[i]));
   }
   show(-1);await cheer();await runSteps(spellSteps(),()=>false);
@@ -813,6 +815,9 @@ $('btnPause').onclick=()=>{
   const m=modal(`<div class="pauseMsg">☕</div><h2>休息一下</h2><button class="bigbtn" id="pGo">繼續</button>`);
   m.querySelector('#pGo').onclick=()=>{m.remove();paused=false;if(repeatFn)Promise.resolve(repeatFn()).catch(()=>{});};
 };
+/* 手機上手指滑動時，整個畫面不跟著移動（只有設定視窗可以捲動） */
+document.addEventListener('touchmove',e=>{if(!(e.target.closest&&e.target.closest('.mbox')))e.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
 goHome();
 </script>
 </body>
